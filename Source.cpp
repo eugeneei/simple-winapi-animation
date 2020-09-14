@@ -1,22 +1,15 @@
-// HelloWindowsDesktop.cpp
-// compile with: /D_UNICODE /DUNICODE /DWIN32 /D_WINDOWS /c
-
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
+#include <cmath>
 
-// Global variables
-
-// The main window class name.
 static TCHAR szWindowClass[] = _T("DesktopApp");
 
-// The string that appears in the application's title bar.
 static TCHAR szTitle[] = _T("Windows Desktop Guided Tour Application");
 
 HINSTANCE hInst;
 
-// Forward declarations of functions included in this code module:
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 int CALLBACK WinMain(
@@ -51,25 +44,14 @@ int CALLBACK WinMain(
         return 1;
     }
 
-    // Store instance handle in our global variable
     hInst = hInstance;
 
-    // The parameters to CreateWindow explained:
-    // szWindowClass: the name of the application
-    // szTitle: the text that appears in the title bar
-    // WS_OVERLAPPEDWINDOW: the type of window to create
-    // CW_USEDEFAULT, CW_USEDEFAULT: initial position (x, y)
-    // 500, 100: initial size (width, length)
-    // NULL: the parent of this window
-    // NULL: this application does not have a menu bar
-    // hInstance: the first parameter from WinMain
-    // NULL: not used in this application
     HWND hWnd = CreateWindow(
         szWindowClass,
         szTitle,
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        500, 100,
+        800, 600,
         NULL,
         NULL,
         hInstance,
@@ -86,14 +68,9 @@ int CALLBACK WinMain(
         return 1;
     }
 
-    // The parameters to ShowWindow explained:
-    // hWnd: the value returned from CreateWindow
-    // nCmdShow: the fourth parameter from WinMain
-    ShowWindow(hWnd,
-        nCmdShow);
+    ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
-    // Main message loop:
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
@@ -104,40 +81,92 @@ int CALLBACK WinMain(
     return (int)msg.wParam;
 }
 
-//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  PURPOSE:  Processes messages for the main window.
-//
-//  WM_PAINT    - Paint the main window
-//  WM_DESTROY  - post a quit message and return
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    PAINTSTRUCT ps;
-    HDC hdc;
-    TCHAR greeting[] = _T("Hello, Windows desktop!");
+    static int clientWidth;
+    static int clientHeight;
+
+
+    static int x, y;
+    static int width = 25;
+    static double dX, dY;
+    static double angle;
+    static bool started = false;
+
+    HDC hdc;                 // device context (DC) for window      
+    PAINTSTRUCT ps;          // paint data for BeginPaint and EndPaint 
+    HPEN pen;
 
     switch (message)
     {
+    case WM_SIZE:
+        clientWidth = LOWORD(lParam);
+        clientHeight = HIWORD(lParam);
+        break;
+    case WM_LBUTTONDOWN:
+    {
+        angle = rand() % 360;
+
+        x = LOWORD(lParam);
+        y = HIWORD(lParam);
+
+        SetTimer(hWnd, 1, 25, NULL);
+
+        dX = 5 * cos(angle);
+        dY = 5 * sin(angle);
+
+        started = true;
+    }
+    break;
+    case WM_TIMER:
+    {      
+        if (x > clientWidth - width)
+        {
+            dX = -abs(dX);
+        }
+
+        if (y > clientHeight - width)
+        {
+            dY = -abs(dY);
+        }
+
+        if (x < 0)
+        {
+            dX = abs(dX);
+        }
+
+        if (y < 0)
+        {
+            dY = abs(dY);
+        }
+
+        x += dX;
+        y += dY;
+
+        InvalidateRect(hWnd, NULL, true);
+    }
+    break;
     case WM_PAINT:
-        hdc = BeginPaint(hWnd, &ps);
+        if (started)
+        {
+            hdc = BeginPaint(hWnd, &ps);
 
-        // Here your application is laid out.
-        // For this introduction, we just print out "Hello, Windows desktop!"
-        // in the top left corner.
-        TextOut(hdc,
-            5, 5,
-            greeting, _tcslen(greeting));
-        // End application-specific layout section.
+            // drawing
+            pen = CreatePen(PS_DOT, 1, RGB(128, 0, 0));
+            SelectObject(hdc, pen);
 
-        EndPaint(hWnd, &ps);
+            Rectangle(hdc, x, y, x + width, y + width);
+            // end drawing
+
+            DeleteObject(pen);
+            EndPaint(hWnd, &ps);
+        }
         break;
     case WM_DESTROY:
-        PostQuitMessage(0);
+        PostQuitMessage(0);        
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
-        break;
     }
-
-    return 0;
+    return (LRESULT)NULL;
 }
