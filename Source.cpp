@@ -83,49 +83,175 @@ int CALLBACK WinMain(
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static bool started = false;
+    static bool paused = false;
+    static bool mousePressed = false;
+
     static int clientWidth;
     static int clientHeight;
 
-
+    static int step = 5;
     static int x, y;
-    static int width = 25;
+    static int radius = 15;
     static double dX, dY;
     static double angle;
-    static bool started = false;
 
     HDC hdc;                 // device context (DC) for window      
     PAINTSTRUCT ps;          // paint data for BeginPaint and EndPaint 
     HPEN pen;
+    HBRUSH brush;
 
     switch (message)
     {
     case WM_SIZE:
+    {
         clientWidth = LOWORD(lParam);
         clientHeight = HIWORD(lParam);
         break;
+    }
     case WM_LBUTTONDOWN:
     {
+        KillTimer(hWnd, 1);
+        started = true;
+        paused = true;
+        mousePressed = true;
+
         angle = rand() % 360;
 
         x = LOWORD(lParam);
         y = HIWORD(lParam);
 
-        SetTimer(hWnd, 1, 25, NULL);
-
         dX = 5 * cos(angle);
         dY = 5 * sin(angle);
 
-        started = true;
+        InvalidateRect(hWnd, NULL, TRUE);
+        break;
     }
-    break;
+    case WM_MOUSEMOVE:
+    {
+        if (mousePressed)
+        {
+            x = LOWORD(lParam);
+            y = HIWORD(lParam);
+            InvalidateRect(hWnd, NULL, true);
+        }
+        break;
+    }
+    case WM_LBUTTONUP:
+    {
+        mousePressed = false;
+        break;
+    }
+    case WM_KEYDOWN:
+    {
+        if (wParam == VK_SPACE)
+        {
+            if (paused)
+            {
+                SetTimer(hWnd, 1, 25, NULL);
+                paused = false;
+            }
+            else
+            {
+                KillTimer(hWnd, 1);
+                paused = true;
+            }
+        }
+
+        if (paused)
+        {
+            switch (wParam)
+            {
+            case VK_UP:
+            {
+                if (y > step)
+                {
+                    y -= step;
+                    InvalidateRect(hWnd, NULL, true);
+                }
+                break;
+            }
+            case VK_DOWN:
+            {
+                if (y < clientHeight - radius - step)
+                {
+                    y += step;
+                    InvalidateRect(hWnd, NULL, true);
+                }
+                break;
+            }
+            case VK_LEFT:
+            {
+                if (x > step)
+                {
+                    x -= step;
+                    InvalidateRect(hWnd, NULL, true);
+                }
+                break;
+            }
+            case VK_RIGHT:
+            {
+                if (x < clientWidth - radius - step)
+                {
+                    x += step;
+                    InvalidateRect(hWnd, NULL, true);
+                }
+                break;
+            }
+            break;
+            }
+        }
+    case WM_MOUSEWHEEL:
+    {
+        int wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+        if (LOWORD(wParam) == MK_CONTROL)
+        {
+            for (; wheelDelta > WHEEL_DELTA; wheelDelta -= WHEEL_DELTA)
+            {
+                if (x < clientWidth - radius - step)
+                {
+                    x += step;
+                    InvalidateRect(hWnd, NULL, true);
+                }
+            }
+            for (; wheelDelta < 0; wheelDelta += WHEEL_DELTA)
+            {
+                if (x > step)
+                {
+                    x -= step;
+                    InvalidateRect(hWnd, NULL, true);
+                }
+            }
+        }
+        else
+        {
+            for (; wheelDelta > WHEEL_DELTA; wheelDelta -= WHEEL_DELTA)
+            {
+                if (y < clientHeight - radius - step)
+                {
+                    y += step;
+                    InvalidateRect(hWnd, NULL, true);
+                }
+            }
+            for (; wheelDelta < 0; wheelDelta += WHEEL_DELTA)
+            {
+                if (y > step)
+                {
+                    y -= step;
+                    InvalidateRect(hWnd, NULL, true);
+                }
+            }
+        }
+        break;
+    }
     case WM_TIMER:
-    {      
-        if (x > clientWidth - width)
+    {
+        if (x > clientWidth - radius)
         {
             dX = -abs(dX);
         }
 
-        if (y > clientHeight - width)
+        if (y > clientHeight - radius)
         {
             dY = -abs(dY);
         }
@@ -147,26 +273,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     break;
     case WM_PAINT:
-        if (started)
-        {
+    {
+        if (started) {
             hdc = BeginPaint(hWnd, &ps);
 
             // drawing
             pen = CreatePen(PS_DOT, 1, RGB(128, 0, 0));
             SelectObject(hdc, pen);
 
-            Rectangle(hdc, x, y, x + width, y + width);
+            brush = CreateSolidBrush(RGB(255, 255, 0));
+            SelectObject(hdc, brush);
+
+            Ellipse(hdc, x - radius, y - radius, x + radius, y + radius);
             // end drawing
 
             DeleteObject(pen);
             EndPaint(hWnd, &ps);
         }
         break;
+    }
     case WM_DESTROY:
-        PostQuitMessage(0);        
+        PostQuitMessage(0);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return (LRESULT)NULL;
+    }
 }
