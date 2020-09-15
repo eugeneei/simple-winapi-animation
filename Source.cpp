@@ -98,8 +98,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     HDC hdc;                 // device context (DC) for window      
     PAINTSTRUCT ps;          // paint data for BeginPaint and EndPaint 
-    HPEN pen;
-    HBRUSH brush;
+    
+    static HDC hdcBitmap;    // compatible HDC for bitmap
+    static HBITMAP hBitmap;
+    static BITMAP bitmap;
+
+    static HPEN pen;
+    static HBRUSH brush;
+
 
     switch (message)
     {
@@ -278,16 +284,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             hdc = BeginPaint(hWnd, &ps);
 
             // drawing
-            pen = CreatePen(PS_DOT, 1, RGB(128, 0, 0));
+
+            BitBlt(
+                hdc,
+                x,
+                y,
+                bitmap.bmWidth,
+                bitmap.bmHeight,
+                hdcBitmap,
+                0,
+                0,
+                SRCCOPY
+            );
+
+            /*pen = CreatePen(PS_DOT, 1, RGB(128, 0, 0));
             SelectObject(hdc, pen);
 
             brush = CreateSolidBrush(RGB(255, 255, 0));
             SelectObject(hdc, brush);
 
-            Ellipse(hdc, x - radius, y - radius, x + radius, y + radius);
+            Ellipse(hdc, x - radius, y - radius, x + radius, y + radius);*/
+            
             // end drawing
 
-            DeleteObject(pen);
+            //DeleteObject(pen);
             EndPaint(hWnd, &ps);
         }
         break;
@@ -295,6 +315,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+    case WM_CREATE:
+    {
+        hBitmap = (HBITMAP)LoadImage(
+            NULL,
+            _T("Sprite.bmp"),
+            IMAGE_BITMAP,
+            0, 0, LR_LOADFROMFILE  | LR_CREATEDIBSECTION
+            );
+
+        if (hBitmap == NULL)
+        {
+            MessageBox(hWnd, _T("Файл не найден"), _T("Загрузка изображения"), MB_OK | MB_ICONHAND);
+            DestroyWindow(hWnd);
+            return 1;
+        }
+        
+        GetObject(hBitmap, sizeof(bitmap), &bitmap);
+        hdc = GetDC(hWnd);
+        hdcBitmap = CreateCompatibleDC(hdc);
+        SelectObject(hdcBitmap, hBitmap);
+        ReleaseDC(hWnd, hdc);
+    }
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
