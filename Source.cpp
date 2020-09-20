@@ -98,7 +98,7 @@ int CALLBACK WinMain(
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{ 
+{     
     static bool started = false;
     static bool paused = false;
     static bool mousePressed = false;
@@ -112,13 +112,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     HDC hdc;                 // device context (DC) for window      
     PAINTSTRUCT ps;          // paint data for BeginPaint and EndPaint 
-    
-    static HDC hdcBitmap;    // compatible HDC for bitmap
-    static HBITMAP hBitmap;
-    static BITMAP bitmap;
-
-    static HPEN pen;
-    static HBRUSH brush;
 
     switch (message)
     {
@@ -318,8 +311,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             hdc = BeginPaint(hWnd, &ps);
             Graphics graphics(hdc);
             
+            
             Image image(L"Bird.jpg");
             graphics.DrawImage(&image, x - spriteWidth / 2, y - spriteHeight / 2);
+            
+
+            //Image image(L"Bird.jpg");
+            //Graphics g(hdc);
+            //Rect paintRect(0, 0, spriteWidth, spriteHeight);
+            //// Создаем временный буфер
+            //Bitmap backBuffer(clientWidth, clientHeight, &g);
+            //Graphics temp(&backBuffer);
+            //// Рисуем в буфер
+            //temp.DrawImage(&image, paintRect);
+            //// Переносим на экран
+            //g.DrawImage(&backBuffer, x - spriteWidth / 2, x - spriteHeight / 2, 0, 0,
+            //    clientWidth, clientHeight, UnitPixel);
+        }
 
             EndPaint(hWnd, &ps);
         }
@@ -338,5 +346,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return (LRESULT)NULL;
-    }
 }
