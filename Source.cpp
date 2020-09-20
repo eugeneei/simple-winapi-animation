@@ -1,14 +1,24 @@
-#include <windows.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
 #include <cmath>
+#include <windows.h>
+#include <objidl.h>
+#include <gdiplus.h>
+using namespace Gdiplus;
+#pragma comment (lib,"Gdiplus.lib")
+
+using namespace Gdiplus;
+
+#define CL_TRANSPARENT RGB(255,0,0)
 
 static TCHAR szWindowClass[] = _T("DesktopApp");
 
-static TCHAR szTitle[] = _T("Windows Desktop Guided Tour Application");
+static TCHAR szTitle[] = _T("By Ralovets Application");
 
 HINSTANCE hInst;
+int spriteWidth;
+int spriteHeight;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
@@ -19,6 +29,11 @@ int CALLBACK WinMain(
     _In_ int       nCmdShow
 )
 {
+    GdiplusStartupInput gdiplusStartupInput;
+    ULONG_PTR           gdiplusToken;
+
+    GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
     WNDCLASSEX wcex;
 
     wcex.cbSize = sizeof(WNDCLASSEX);
@@ -78,11 +93,12 @@ int CALLBACK WinMain(
         DispatchMessage(&msg);
     }
 
+    GdiplusShutdown(gdiplusToken);
     return (int)msg.wParam;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
+{ 
     static bool started = false;
     static bool paused = false;
     static bool mousePressed = false;
@@ -91,10 +107,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     static int clientHeight;
 
     static int step = 5;
-    static int x, y;
-    static int radius = 15;
+    static int x, y;    
     static double dX, dY;
-    static double angle;
 
     HDC hdc;                 // device context (DC) for window      
     PAINTSTRUCT ps;          // paint data for BeginPaint and EndPaint 
@@ -105,7 +119,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     static HPEN pen;
     static HBRUSH brush;
-
 
     switch (message)
     {
@@ -122,7 +135,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         paused = true;
         mousePressed = true;
 
-        angle = rand() % 360;
+        int angle = rand() % 360;
 
         x = LOWORD(lParam);
         y = HIWORD(lParam);
@@ -139,6 +152,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             x = LOWORD(lParam);
             y = HIWORD(lParam);
+
+            if (y < spriteHeight / 2 + step)
+            {
+                y = spriteHeight / 2 + step;
+            }
+
+            if (y > clientHeight - spriteHeight / 2 - step)
+            {
+                y = clientHeight - spriteHeight / 2;
+            }
+
+            if (x < spriteWidth / 2 - step)
+            {
+                x = spriteWidth / 2 - step;
+            }
+
+            if (x > clientWidth - spriteWidth / 2 + step)
+            {
+                x = clientWidth - spriteWidth / 2 + step;
+            }
+
             InvalidateRect(hWnd, NULL, true);
         }
         break;
@@ -154,7 +188,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             if (paused)
             {
-                SetTimer(hWnd, 1, 25, NULL);
+                SetTimer(hWnd, 1, 42, NULL);
                 paused = false;
             }
             else
@@ -170,7 +204,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case VK_UP:
             {
-                if (y > step)
+                if (y > spriteHeight / 2 + step)
                 {
                     y -= step;
                     InvalidateRect(hWnd, NULL, true);
@@ -179,7 +213,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             case VK_DOWN:
             {
-                if (y < clientHeight - radius - step)
+                if (y < clientHeight - spriteHeight / 2 - step)
                 {
                     y += step;
                     InvalidateRect(hWnd, NULL, true);
@@ -188,7 +222,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             case VK_LEFT:
             {
-                if (x > step)
+                if (x > spriteWidth / 2 - step)
                 {
                     x -= step;
                     InvalidateRect(hWnd, NULL, true);
@@ -197,7 +231,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             case VK_RIGHT:
             {
-                if (x < clientWidth - radius - step)
+                if (x < clientWidth - spriteWidth / 2 + step)
                 {
                     x += step;
                     InvalidateRect(hWnd, NULL, true);
@@ -214,7 +248,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             for (; wheelDelta > WHEEL_DELTA; wheelDelta -= WHEEL_DELTA)
             {
-                if (x < clientWidth - radius - step)
+                if (x < clientWidth - spriteWidth / 2)
                 {
                     x += step;
                     InvalidateRect(hWnd, NULL, true);
@@ -233,7 +267,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             for (; wheelDelta > WHEEL_DELTA; wheelDelta -= WHEEL_DELTA)
             {
-                if (y < clientHeight - radius - step)
+                if (y < clientHeight - spriteHeight / 2 - step)
                 {
                     y += step;
                     InvalidateRect(hWnd, NULL, true);
@@ -241,7 +275,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             for (; wheelDelta < 0; wheelDelta += WHEEL_DELTA)
             {
-                if (y > step)
+                if (y > spriteHeight / 2 + step)
                 {
                     y -= step;
                     InvalidateRect(hWnd, NULL, true);
@@ -252,28 +286,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     case WM_TIMER:
     {
-        if (x > clientWidth - radius)
+        if (x > clientWidth - spriteWidth / 2 + step)
         {
             dX = -abs(dX);
         }
 
-        if (y > clientHeight - radius)
+        if (y > clientHeight - spriteHeight / 2 + step)
         {
             dY = -abs(dY);
         }
-
-        if (x < 0)
+        
+        if (x < spriteWidth / 2 - step)
         {
             dX = abs(dX);
         }
 
-        if (y < 0)
+        if (y < spriteHeight / 2 + step)
         {
             dY = abs(dY);
         }
 
-        x += dX;
-        y += dY;
+        x += (int) dX;
+        y += (int) dY;
 
         InvalidateRect(hWnd, NULL, true);
     }
@@ -282,32 +316,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         if (started) {
             hdc = BeginPaint(hWnd, &ps);
-
-            // drawing
-
-            BitBlt(
-                hdc,
-                x,
-                y,
-                bitmap.bmWidth,
-                bitmap.bmHeight,
-                hdcBitmap,
-                0,
-                0,
-                SRCCOPY
-            );
-
-            /*pen = CreatePen(PS_DOT, 1, RGB(128, 0, 0));
-            SelectObject(hdc, pen);
-
-            brush = CreateSolidBrush(RGB(255, 255, 0));
-            SelectObject(hdc, brush);
-
-            Ellipse(hdc, x - radius, y - radius, x + radius, y + radius);*/
+            Graphics graphics(hdc);
             
-            // end drawing
+            Image image(L"Bird.jpg");
+            graphics.DrawImage(&image, x - spriteWidth / 2, y - spriteHeight / 2);
 
-            //DeleteObject(pen);
             EndPaint(hWnd, &ps);
         }
         break;
@@ -316,26 +329,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         break;
     case WM_CREATE:
-    {
-        hBitmap = (HBITMAP)LoadImage(
-            NULL,
-            _T("Sprite.bmp"),
-            IMAGE_BITMAP,
-            0, 0, LR_LOADFROMFILE  | LR_CREATEDIBSECTION
-            );
-
-        if (hBitmap == NULL)
-        {
-            MessageBox(hWnd, _T("Файл не найден"), _T("Загрузка изображения"), MB_OK | MB_ICONHAND);
-            DestroyWindow(hWnd);
-            return 1;
-        }
-        
-        GetObject(hBitmap, sizeof(bitmap), &bitmap);
-        hdc = GetDC(hWnd);
-        hdcBitmap = CreateCompatibleDC(hdc);
-        SelectObject(hdcBitmap, hBitmap);
-        ReleaseDC(hWnd, hdc);
+    {      
+        Image temp(L"Bird.jpg");
+        spriteHeight = temp.GetHeight();
+        spriteWidth = temp.GetWidth();
     }
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);

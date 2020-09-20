@@ -20,7 +20,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Sprite.bmp">
+    <Image Include="C:\Users\r4lov\Desktop\Sprite.png">
       <Filter>Файлы ресурсов</Filter>
     </Image>
   </ItemGroup>
